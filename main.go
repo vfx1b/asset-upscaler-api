@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"github.com/disintegration/imaging"
 	"html/template"
 	"image"
@@ -18,47 +17,79 @@ func index(w http.ResponseWriter, r *http.Request) {
 	it, _ := template.ParseFiles("index.html")
 	err := it.Execute(w, nil)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Internal Error", http.StatusBadRequest)
+		return
 	}
 }
 
 func result(w http.ResponseWriter, r *http.Request) {
-
 	err := r.ParseMultipartForm(32 << 20)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Internal Error", http.StatusBadRequest)
+		return
 	}
 
-	file, _, err := r.FormFile("assetFile")
+	original, config, err := retrieveImageAndMeta(r)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Internal Error", http.StatusBadRequest)
+		return
 	}
 
-	i, _, err := image.Decode(file)
+	upscaled := imaging.Resize(original, config.Width*10, config.Height*10, imaging.NearestNeighbor)
+
+	originalB64, err := encodeImageToBase64PNG(original)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Internal Error", http.StatusBadRequest)
+		return
 	}
-	file.Seek(0, 0)
-	c, _, err := image.DecodeConfig(file)
+	upscaledB64, err := encodeImageToBase64PNG(upscaled)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Internal Error", http.StatusBadRequest)
+		return
 	}
 
-	i = imaging.Resize(i, c.Width*10, c.Height*10, imaging.NearestNeighbor)
-
-	var buf bytes.Buffer
-
-	png.Encode(&buf, i)
-
-	b64str := base64.StdEncoding.EncodeToString(buf.Bytes())
-
-	fmt.Println(b64str)
+	templateValues := map[string]string{
+		"original": originalB64,
+		"upscaled": upscaledB64,
+	}
 
 	rt, _ := template.ParseFiles("result.html")
-	err = rt.Execute(w, b64str)
+	err = rt.Execute(w, templateValues)
 	if err != nil {
-		log.Fatal(err)
+		http.Error(w, "Internal Error", http.StatusBadRequest)
+		return
 	}
+}
+
+func retrieveImageAndMeta(r *http.Request) (image.Image, *image.Config, error) {
+	src, _, err := r.FormFile("assetFile")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	config, _, err := image.DecodeConfig(src)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	src.Seek(0, 0) // reset read head to original pos
+
+	img, _, err := image.Decode(src)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return img, &config, nil
+}
+
+func encodeImageToBase64PNG(image image.Image) (string, error) {
+	var buf bytes.Buffer
+	err := png.Encode(&buf, image)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
 
 func main() {
