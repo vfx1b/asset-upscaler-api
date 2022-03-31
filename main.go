@@ -11,6 +11,7 @@ import (
 	"image/png"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -23,7 +24,22 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func result(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(32 << 20)
+	// possible memory attack vector
+	err := r.ParseMultipartForm(5 << 20)
+
+	scaleFactorString := r.FormValue("scaleFactor")
+	scaleFactor, err := strconv.Atoi(scaleFactorString)
+	if err != nil {
+		http.Error(w, "Internal Error", http.StatusBadRequest)
+		return
+	}
+
+	// possible memory attack vector
+	if scaleFactor < 1 || scaleFactor > 20 {
+		http.Error(w, "Internal Error", http.StatusBadRequest)
+		return
+	}
+
 	if err != nil {
 		http.Error(w, "Internal Error", http.StatusBadRequest)
 		return
@@ -35,7 +51,7 @@ func result(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	upscaled := imaging.Resize(original, config.Width*10, config.Height*10, imaging.NearestNeighbor)
+	upscaled := imaging.Resize(original, config.Width*scaleFactor, config.Height*scaleFactor, imaging.NearestNeighbor)
 
 	originalB64, err := encodeImageToBase64PNG(original)
 	if err != nil {
