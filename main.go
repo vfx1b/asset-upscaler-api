@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/base64"
 	"github.com/disintegration/imaging"
+	"github.com/gorilla/handlers"
 	"html/template"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	"image/png"
-	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -109,9 +110,13 @@ func encodeImageToBase64PNG(image image.Image) (string, error) {
 }
 
 func main() {
+	r := http.NewServeMux()
 
-	http.HandleFunc("/", index)
-	http.HandleFunc("/result", result)
+	r.HandleFunc("/", index)
+	r.HandleFunc("/result", result)
 
-	log.Fatal(http.ListenAndServe("0.0.0.0:8080", nil))
+	err := http.ListenAndServe("0.0.0.0:8080", handlers.LoggingHandler(os.Stdout, r))
+	if err != nil {
+		panic(err)
+	}
 }
