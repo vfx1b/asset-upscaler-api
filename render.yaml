@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: asset-upscaler
+    plan: free
+    region: frankfurt
+    env: docker

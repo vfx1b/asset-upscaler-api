@@ -113,5 +113,5 @@ func main() {
 	http.HandleFunc("/", index)
 	http.HandleFunc("/result", result)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe("0.0.0.0:8080", nil))
 }
