@@ -89,7 +89,11 @@ func retrieveImageAndMeta(r *http.Request) (image.Image, *image.Config, error) {
 		return nil, nil, err
 	}
 
-	src.Seek(0, 0) // reset read head to original pos
+	// reset read head to original pos
+	_, err = src.Seek(0, 0)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	img, _, err := image.Decode(src)
 	if err != nil {
