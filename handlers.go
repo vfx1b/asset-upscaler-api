@@ -18,16 +18,26 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 type ResultHandlerForm struct {
-	Images      []httpin.File `in:"form=images"`
-	ScaleFactor int           `in:"form=scale-factor"`
-	// OutputImageFormat string        `in:"form=output-image-format"`
+	Images            []httpin.File `in:"form=images"`
+	ScaleFactor       int           `in:"form=scale-factor"`
+	OutputImageFormat string        `in:"form=output-image-format"`
 }
 
 func result(w http.ResponseWriter, r *http.Request) {
 	form := r.Context().Value(httpin.Input).(*ResultHandlerForm)
 
-	checkInputFormatsOrFail(form, w)
-	checkInputImagesOrFail(form, w)
+	encoder := imageEncoders[ImageEncoding(form.OutputImageFormat)]
+	if encoder == nil {
+		http.Error(w, "Internal Error", http.StatusBadRequest)
+		return
+	}
+
+	for _, i := range form.Images {
+		if !i.Valid {
+			http.Error(w, "Internal Error", http.StatusBadRequest)
+			return
+		}
+	}
 
 	// possible memory attack vector
 	if form.ScaleFactor < 1 || form.ScaleFactor > 20 {
@@ -40,7 +50,7 @@ func result(w http.ResponseWriter, r *http.Request) {
 		Original string
 	}
 
-	collection := []ImageCollection{}
+	var collection []ImageCollection
 
 	for _, i := range form.Images {
 		original, config, err := parseImageAndImageConfig(i)
@@ -51,12 +61,12 @@ func result(w http.ResponseWriter, r *http.Request) {
 		}
 
 		upscaled := imaging.Resize(original, config.Width*form.ScaleFactor, config.Height*form.ScaleFactor, imaging.NearestNeighbor)
-		upscaledBase64, err := imageEncoders[EncoderPNG].encodeImage(upscaled)
+		upscaledBase64, err := imageEncoders[PNG].encodeImage(upscaled)
 		if err != nil {
 			http.Error(w, "Internal Error", http.StatusBadRequest)
 			return
 		}
-		originalBase64, err := imageEncoders[EncoderPNG].encodeImage(original)
+		originalBase64, err := imageEncoders[PNG].encodeImage(original)
 		if err != nil {
 			http.Error(w, "Internal Error", http.StatusBadRequest)
 			return

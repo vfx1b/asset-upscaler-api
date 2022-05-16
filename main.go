@@ -10,8 +10,7 @@ import (
 )
 
 var (
-	r             = http.NewServeMux()
-	imageEncoders = make(map[ImageEncoding]ImageStringEncoder)
+	r = http.NewServeMux()
 )
 
 func init() {
@@ -19,9 +18,6 @@ func init() {
 
 	r.Handle("/result",
 		alice.New(httpin.NewInput(ResultHandlerForm{})).ThenFunc(result))
-
-	imageEncoders[EncoderPNG] = &PngImageStringEncoder{}
-	imageEncoders[EncoderJPEG] = &JpegImageStringEncoder{}
 }
 
 func main() {

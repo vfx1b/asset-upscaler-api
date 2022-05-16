@@ -6,7 +6,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"mime/multipart"
-	"net/http"
 )
 
 func parseImageAndImageConfig(src multipart.File) (image.Image, *image.Config, error) {
@@ -27,21 +26,4 @@ func parseImageAndImageConfig(src multipart.File) (image.Image, *image.Config, e
 	}
 
 	return img, &config, nil
-}
-
-func checkInputFormatsOrFail(r *ResultHandlerForm, w http.ResponseWriter) {
-	// if r.OutputImageFormat == EncoderJPEG || r.OutputImageFormat == EncoderPNG {
-	// 	return
-	// }
-
-	// http.Error(w, "Internal Error", http.StatusBadRequest)
-}
-
-func checkInputImagesOrFail(r *ResultHandlerForm, w http.ResponseWriter) {
-	for _, i := range r.Images {
-		if !i.Valid {
-			http.Error(w, "Internal Error", http.StatusBadRequest)
-			return
-		}
-	}
 }

@@ -10,17 +10,21 @@ import (
 
 type ImageEncoding string
 
-const (
-	EncoderPNG  = "PNG"
-	EncoderJPEG = "JPEG"
+var (
+	PNG  ImageEncoding = "PNG"
+	JPEG ImageEncoding = "JPEG"
+
+	imageEncoders = map[ImageEncoding]ImageStringEncoder{
+		PNG:  &PngImageStringEncoder{},
+		JPEG: &JpegImageStringEncoder{},
+	}
 )
 
 type ImageStringEncoder interface {
 	encodeImage(i image.Image) (string, error)
 }
 
-type PngImageStringEncoder struct {
-}
+type PngImageStringEncoder struct{}
 
 func (e *PngImageStringEncoder) encodeImage(image image.Image) (string, error) {
 	var buf bytes.Buffer
@@ -32,8 +36,7 @@ func (e *PngImageStringEncoder) encodeImage(image image.Image) (string, error) {
 	return base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
 
-type JpegImageStringEncoder struct {
-}
+type JpegImageStringEncoder struct{}
 
 func (e *JpegImageStringEncoder) encodeImage(image image.Image) (string, error) {
 	var buf bytes.Buffer
