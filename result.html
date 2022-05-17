@@ -18,14 +18,16 @@
         </div>
         <div class="row">
 
-            {{range $i := .}}
+            {{ $mime := .Mime}}
+
+            {{range $i := .Images}}
                 <figure class="figure">
-                    <img src="data:image/png;base64, {{$i.Upscaled}}" class="figure-img img-fluid rounded" >
+                    <img src="data:image/{{$mime}};base64, {{$i.Upscaled}}" class="figure-img img-fluid rounded" >
                     <figcaption class="figure-caption">Upscaled Version</figcaption>
                 </figure>
 
                 <figure class="figure">
-                    <img src="data:image/png;base64, {{$i.Original}}" class="figure-img img-fluid rounded" >
+                    <img src="data:image/{{$mime}};base64, {{$i.Original}}" class="figure-img img-fluid rounded" >
                     <figcaption class="figure-caption">Original Version</figcaption>
                 </figure>
             {{end}}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strings"
 	"text/template"
 
 	"github.com/disintegration/imaging"
@@ -45,12 +46,15 @@ func result(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type ImageCollection struct {
-		Upscaled string
-		Original string
+	resultModel := struct {
+		Mime   string
+		Images []struct {
+			Upscaled string
+			Original string
+		}
+	}{
+		Mime: strings.ToLower(form.OutputImageFormat),
 	}
-
-	var collection []ImageCollection
 
 	for _, i := range form.Images {
 		original, config, err := parseImageAndImageConfig(i)
@@ -61,25 +65,25 @@ func result(w http.ResponseWriter, r *http.Request) {
 		}
 
 		upscaled := imaging.Resize(original, config.Width*form.ScaleFactor, config.Height*form.ScaleFactor, imaging.NearestNeighbor)
-		upscaledBase64, err := imageEncoders[PNG].encodeImage(upscaled)
+		upscaledBase64, err := encoder.encodeImage(upscaled)
 		if err != nil {
 			http.Error(w, "Internal Error", http.StatusBadRequest)
 			return
 		}
-		originalBase64, err := imageEncoders[PNG].encodeImage(original)
+		originalBase64, err := encoder.encodeImage(original)
 		if err != nil {
 			http.Error(w, "Internal Error", http.StatusBadRequest)
 			return
 		}
 
-		collection = append(collection, ImageCollection{
-			Upscaled: upscaledBase64,
-			Original: originalBase64,
-		})
+		resultModel.Images = append(resultModel.Images, struct {
+			Upscaled string
+			Original string
+		}{Upscaled: upscaledBase64, Original: originalBase64})
 	}
 
 	rt, _ := template.ParseFiles("result.html")
-	err := rt.Execute(w, collection)
+	err := rt.Execute(w, resultModel)
 	if err != nil {
 		http.Error(w, "Internal Error", http.StatusBadRequest)
 		return
